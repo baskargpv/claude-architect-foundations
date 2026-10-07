@@ -1,0 +1,18 @@
+[project]
+name = "claude-architect-foundations"
+version = "0.1.0"
+description = "Runnable study demos for the Claude Certified Architect - Foundations exam"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=1.12",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib -q"
+pythonpath = ["."]
+testpaths = ["domain1_agentic_architecture", "domain2_tool_design_mcp", "domain3_claude_code_config", "domain4_prompt_engineering", "domain5_context_reliability", "common"]
