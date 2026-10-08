@@ -1,18 +1,5 @@
 # Task 3.5 — Iterative Refinement Techniques
 
-> Status: **skeleton** — theory captured from the study notes; demo not built yet.
+> Status: **not built yet.** Lesson: <https://claudecertificationguide.com/learn/3-claude-code-config/3-5-iterative-refinement>
 
-## Theory
-
-- Known target, inconsistent interpretation -> concrete input/output examples.
-- Complex transformation with many edge cases -> test-driven iteration; feed back the failure output, not prose.
-- Unfamiliar domain, target unknown -> interview pattern.
-- Batch feedback when fixes interact; send sequentially when they are independent.
-
-## Exam trap
-
-Refining prose harder when interpretation is already inconsistent; confusing the interview pattern with examples.
-
-## Code walkthrough
-
-_To be built:_ `good_example/` and `anti_pattern/` hold demo configs (YAML / Markdown / shell); `test_task_3_5.py` validates their structure.
+This folder will follow the repo template: a README with theory, exam traps and a code walkthrough; `good_example.py` implementing the lesson's Build Exercise; `anti_pattern.py` with one runnable function per Exam Trap; and a mock-mode test file.

@@ -1,70 +1,84 @@
 # Task 1.5 — Agent SDK Hooks
 
-## Theory
+Lesson: <https://claudecertificationguide.com/learn/1-agentic-architecture/1-5-agent-sdk-hooks>
 
-Both hook types run *your* check logic. The SDK only guarantees **when** it runs relative to the tool call.
+## What you need to know
 
-| Hook | Runs / sees | Correct use |
+Hooks add deterministic behaviour at the boundary between the model's decisions and real tool side effects.
+
+| Hook | When | Can |
 |---|---|---|
-| `PreToolUse` | **Before** the handler. Sees only the proposed call (tool name + input); no result exists yet. | Policy and security enforcement: deny before the action happens |
-| `PostToolUse` | **After** the handler has already run. Sees the real output (dates, statuses, amounts). | Data normalisation, or recording state for a later `PreToolUse` check |
+| **PreToolUse** | Before the tool runs | Allow, deny, ask or defer (`permissionDecision`); rewrite arguments (`updatedInput`). A denied tool **never runs**. |
+| **PostToolUse** | After the tool runs, before the model sees the result | Replace what the model sees (`updatedToolOutput`); record state for a later PreToolUse check |
 
-**Normalisation (PostToolUse):** when tools return mixed formats (Unix vs ISO 8601 vs DD/MM/YYYY; numeric vs string vs single-char status codes), rewrite every result into one schema **before the model sees it**. That removes misreadings like day/month swaps, or `"P"` read as "processed" instead of "pending".
+- Neither hook reverses side effects. Blocking in PostToolUse stops the loop, but the action has already happened.
+- **Normalisation targets:**
+  - Unix and DD/MM/YYYY dates → ISO 8601
+  - numeric or one-letter status codes → words
+  - currency → a decimal amount plus a currency code
+- **Policy examples:**
+  - refunds over $500 → human escalation
+  - `transfer_funds` gated on a passing AML check
+  - `approve_discount` above 20% → manager approval queue
+- **Decision rule:** if one failure means financial loss or legal risk, use a hook. Use prompts for formatting and style.
 
-**Threshold and prerequisite gates via PreToolUse:**
+## Exam traps
 
-- Deny `process_refund` above $500, with a `permissionDecisionReason`.
-- Deny `transfer_funds` until session state shows `aml_check` returned a pass.
-
-This is the same deterministic enforcement as Task 1.4, formalised as an SDK hook.
-
-**Decision framework:**
-
-- **Hooks** for 100% requirements: compliance, financial thresholds, prerequisite ordering.
-- **Prompts** for preferences: style, tone, non-critical guidance.
-
-## Exam trap
-
-**Using PostToolUse to block an action.** By the time PostToolUse runs, the handler has already executed. For `process_refund`, the money has already moved. PostToolUse can only inspect or rewrite the result; it can't undo the action. Blocking must happen in PreToolUse.
+| Trap | Demo |
+|---|---|
+| Using PostToolUse hooks to block policy violations | `trap1_post_tool_use_block`: event order is Pre → handler → Post, and the $750 is already in the ledger |
+| Stronger prompts for a 100% requirement | `trap2_prompt_only_compliance`: one flagged transfer gets through (**simulated** skip rate) |
+| Asking the model to normalise data instead of using PostToolUse | `trap3_model_side_normalisation`: the same input gives day/month swaps and `"P"` read as "processed" (**simulated** drift) |
+| Confusing hook direction | `trap4_wrong_hook_direction`: a normaliser registered as PreToolUse has no result to work on, so raw formats reach the model |
 
 ## Exam answer vs current docs
 
 | | Exam answer | Current docs (Agent SDK hooks page) |
 |---|---|---|
-| Rewriting tool output in PostToolUse | "PostToolUse rewrites every result into one consistent schema" | Done with `hookSpecificOutput.updatedToolOutput`, which works for any tool. The older `updatedMCPToolOutput` covers MCP tools only. `additionalContext` appends instead of replacing. |
-| Blocking from PostToolUse | Too late, the handler already ran | Same. A PostToolUse `decision: "block"` only feeds a reason back to Claude; the side effect stands. |
-| PreToolUse decisions | deny / allow | `permissionDecision` is `"allow"`, `"deny"`, `"ask"` or `"defer"`. When hooks disagree, `deny` > `defer` > `ask` > `allow`, and one deny blocks the call. |
-| Callback signature | — | `async def hook(input_data, tool_use_id, context) -> dict`, registered via `ClaudeAgentOptions(hooks={"PreToolUse": [HookMatcher(matcher=..., hooks=[...])]})` |
+| Scope | Task 1.5 tests PreToolUse and PostToolUse only | The SDK has many more events (SubagentStart/Stop, PreCompact …), which aren't tested here |
+| Replacing tool output | "PostToolUse normalises results" | Done with `hookSpecificOutput.updatedToolOutput`, for any tool. The older `updatedMCPToolOutput` (MCP tools only) is **deprecated**. |
+| PreToolUse decisions | allow / deny | `allow`, `deny`, `ask`, `defer`. When hooks disagree, `deny` beats `defer`, which beats `ask`, which beats `allow`. |
+| Registration | — | `ClaudeAgentOptions(hooks={"PreToolUse": [HookMatcher(matcher="mcp__support__process_refund", hooks=[cb])]})`, with callback signature `async def cb(input_data, tool_use_id, context)` |
 
-## Code walkthrough
+## Practice scenario
 
-**`good_example.py`**
+Transfers occasionally skip AML, compliance needs 100%, and prompting gets ~95%. The fix?
 
-- **Backend:** has real side effects (a `Ledger`), and three order sources with three date formats and three status vocabularies.
-- **`build_hooks(state)`** returns callbacks in the exact Agent SDK shape:
-  - `refund_limit` (Pre) denies above $500 with a reason telling the model to escalate.
-  - `aml_gate` (Pre) denies `transfer_funds` unless `state.aml_passed` contains the account.
-  - `normalize_order` (Post) returns `updatedToolOutput` with ISO dates and canonical statuses. `eu` dates are parsed as DD/MM explicitly.
-  - `record_aml` (Post) writes the AML pass into session state for `aml_gate` to read later.
-- **`HookedDispatcher`** honours the SDK contract so the demo runs offline on the Messages API:
-  - Pre hooks run (in parallel), and any deny short-circuits before the handler.
-  - The handler runs, then Post hooks may replace the output.
-  - `events` records the order things happened.
-- **End-to-end:** the Task 1.1 loop drives a mock model that looks up O-3 ($900) and tries a full refund. It gets the denial reason and tells the customer the refund needs approval. The ledger stays empty.
+**A: a PreToolUse hook that blocks `transfer_funds` until `aml_check` passes.**
 
-**`anti_pattern.py`**
+- B (a longer prompt) and D (few-shot) are still probabilistic.
+- C (a PostToolUse flag) runs after the money has moved.
 
-- Puts the $500 check in a **PostToolUse** hook returning `{"decision": "block"}`. The event log shows `PreToolUse → handler → PostToolUse`, and the ledger holds the $750 refund.
-- Has no normaliser, so the model sees `1717200000`, `"03/06/2024"` and `"P"`.
+## Build exercise → code
 
-**`test_task_1_5.py`** proves:
+The exercise is "Implement Agent SDK Hooks for Normalisation and Policy Enforcement" (60 min).
 
-- The handler never runs on a deny, and refunds under the limit go through.
-- The AML gate reads state that a PostToolUse hook recorded.
-- All three formats normalise correctly.
-- The callbacks return the SDK output shape.
-- The agent run moves no money.
-- The anti-pattern's block arrives after the handler, with the money gone.
+| Step | Where |
+|---|---|
+| 1. Three MCP tools with mismatched formats | `build_server()`: a **real** `mcp` server (in-process). Each tool's formats are listed below the table. |
+| 2. PostToolUse normaliser returning `updatedToolOutput` | `normalise_output` → `normalise()` |
+| 3. Check consistency across all three tools | The agent run in `main()` and `test_step3_...`. The model only ever sees ISO dates and English statuses. |
+| 4. PreToolUse refund threshold (> $500 → deny + escalation reason) | `refund_threshold` |
+| 5. AML gate: Pre on `transfer_funds`, Post on `aml_check` writes session state | `aml_gate` + `record_aml` |
+| 6. Test both policies | Denied calls never reach the MCP handler (`events` proves it). After AML passes, or with a lower amount, they go through. |
+
+The three MCP tools' raw formats:
+
+| Tool | Dates | Status | Money |
+|---|---|---|---|
+| `get_customer` | Unix epoch | numeric codes | bare balance string |
+| `lookup_order` | ISO 8601 | English words | integer cents |
+| `check_shipping` | DD/MM/YYYY | one letter (S / P / D) | `"€12,50"` |
+
+There's also `discount_approval`, the lesson's manager-approval example: a deny that adds the request to `approval_queue`, then succeeds after `manager_approves()`.
+
+**How it runs.** `HookedMCPDispatcher` gives the SDK's guarantees on top of real MCP calls:
+
+- PreToolUse hooks run in parallel, and any deny wins.
+- Then the MCP call (`mcp.Client(server).call_tool`).
+- Then PostToolUse hooks, which may replace the output.
+
+Tools are exposed to the model as `mcp__support__<tool>`, and hook matchers are regexes on those names, the same as SDK matchers.
 
 ## Run
 

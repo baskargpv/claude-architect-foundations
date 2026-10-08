@@ -1,65 +1,69 @@
-"""Task 1.6 — three decomposition mistakes.
+"""Task 1.6 — one runnable function per Exam Trap on the lesson.
 
-1. Single-pass review of every file at once: attention dilution. Early files get
-   detail, later files get skimmed, and cross-file contracts aren't connected.
-   (A bigger model or a "be equally thorough" prompt doesn't change the architecture.)
-2. Batching (groups of 2) with NO integration pass: fine within a batch, blind
-   across batches. users.py and client.py land in different batches.
-3. A fixed pipeline applied to open-ended debugging: the steps were chosen before
-   the evidence, so the unexpected lead (payments-service) is never followed.
+Lesson: https://claudecertificationguide.com/learn/1-agentic-architecture/1-6-task-decomposition
+
+Trap 1  choosing the pattern by what sounds sophisticated, not task characteristics
+Trap 2  a more powerful model / larger context window as the fix for dilution
+Trap 3  single pass with better prompts as "equivalent" to multi-pass
+Trap 4  fixed pipelines for open-ended investigation
+Trap 5  batching files without a cross-file integration pass
 """
 
 from __future__ import annotations
 
-import json
-
 from common.client import ask_json, get_client, mode_banner
 from domain1_agentic_architecture.task_1_6_task_decomposition.good_example import (
-    FILES,
-    FINDINGS_SCHEMA,
-    SYMPTOM,
-    SYSTEM_DATA,
+    ISSUES_SCHEMA,
+    import_graph,
+    load_repo,
     mock_model,
+    single_pass_review,
 )
 
 
-def single_pass_review(client, files: dict[str, str] = FILES) -> list[dict]:
-    sources = "\n".join(f"--- {p} ---\n{s}" for p, s in files.items())
-    prompt = f"[SINGLE PASS]\nReview all of these files with equal thoroughness.\n{sources}"
-    return ask_json(client, prompt, FINDINGS_SCHEMA)["findings"]
+def trap1_pattern_by_sophistication(task: str) -> str:
+    return "dynamic_decomposition"  # "it sounds more advanced" - even for a code review whose steps are known
 
 
-def batched_review(client, files: dict[str, str] = FILES, batch_size: int = 2) -> list[dict]:
-    paths = list(files)
-    findings = []
-    for i in range(0, len(paths), batch_size):
-        batch = paths[i:i + batch_size]
-        sources = "\n".join(f"--- {p} ---\n{files[p]}" for p in batch)
-        findings += ask_json(client, f"[BATCH REVIEW]\n{sources}", FINDINGS_SCHEMA)["findings"]
-    return findings  # no integration pass
+def trap2_bigger_model(client, files) -> dict:
+    """Same single pass, 'bigger model, bigger window'. The architecture is unchanged, so the
+    attention is still spread across every file at once (the mock models the lesson's claim)."""
+    return single_pass_review(client, files, "You have a 1M-token context window - review all files.")
 
 
-FIXED_DEBUG_PLAN = ["app logs", "db metrics", "cdn status"]  # decided before looking at anything
+def trap3_better_prompt(client, files) -> dict:
+    return single_pass_review(client, files, "Be EQUALLY thorough on every file. Do not skim later files.")
 
 
-def fixed_pipeline_investigation(symptom: str = SYMPTOM) -> dict:
-    observations = {step: SYSTEM_DATA[step] for step in FIXED_DEBUG_PLAN}
-    return {"steps": FIXED_DEBUG_PLAN, "observations": observations, "root_cause": None}
+FIXED_TEST_PLAN = ["09_invoice.js", "10_profile.js", "11_reports.js", "03_search.js"]  # decided before exploring
 
 
-def _cross(findings):
-    return [f for f in findings if len(f["files"]) > 1]
+def trap4_fixed_pipeline_for_exploration(files) -> dict:
+    graph, tested, built_on_untested = import_graph(files), set(), []
+    for module in FIXED_TEST_PLAN:  # cannot react to what writing the tests reveals
+        built_on_untested += [(module, d) for d in graph[module] if d not in tested]
+        tested.add(module)
+    return {"order": FIXED_TEST_PLAN, "tests_built_on_untested_dependencies": built_on_untested}
+
+
+def trap5_batching_without_integration(client, files, batch_size: int = 5) -> dict:
+    names, issues = list(files), []
+    for i in range(0, len(names), batch_size):
+        batch = "\n".join(f"--- {n} ---\n{files[n]}" for n in names[i:i + batch_size])
+        issues += ask_json(client, f"[BATCH REVIEW]\n{batch}", ISSUES_SCHEMA)["issues"]
+    return {"issues": issues, "cross_file": []}  # no pass ever sees 01_users.js next to 10_profile.js
 
 
 def main():
     print(mode_banner())
-    sp = single_pass_review(get_client(mock_model))
-    print(f"1) single pass: {len(sp)} findings on {sorted({f['files'][0] for f in sp})}, cross-file={len(_cross(sp))}")
-    b = batched_review(get_client(mock_model))
-    print(f"2) batched, no integration: {len(b)} findings, cross-file={len(_cross(b))}  <- users.py/client.py in different batches")
-    inv = fixed_pipeline_investigation()
-    print(f"3) fixed debug pipeline: steps={inv['steps']} root_cause={inv['root_cause']}")
-    print(f"   app logs said: {json.dumps(inv['observations']['app logs'])}  <- lead never followed")
+    files = load_repo()
+    print(f"trap 1 sophistication : code review -> {trap1_pattern_by_sophistication('multi-file code review')}")
+    print(f"trap 2 bigger model   : {len(trap2_bigger_model(get_client(mock_model), files)['issues'])} issues (multi-pass finds 8)")
+    print(f"trap 3 better prompt  : {len(trap3_better_prompt(get_client(mock_model), files)['issues'])} issues (multi-pass finds 8)")
+    r = trap4_fixed_pipeline_for_exploration(files)
+    print(f"trap 4 fixed plan     : tests built on untested deps {r['tests_built_on_untested_dependencies']}")
+    r = trap5_batching_without_integration(get_client(mock_model), files)
+    print(f"trap 5 batches of 5   : {len(r['issues'])} local issues, {len(r['cross_file'])} cross-file  <- contract bug missed")
 
 
 if __name__ == "__main__":

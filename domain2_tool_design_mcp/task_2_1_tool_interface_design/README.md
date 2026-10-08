@@ -1,19 +1,5 @@
 # Task 2.1 — Tool Interface Design
 
-> Status: **skeleton** — theory captured from the study notes; demo not built yet.
+> Status: **not built yet.** Lesson: <https://claudecertificationguide.com/learn/2-tool-design-mcp/2-1-tool-schema-design>
 
-## Theory
-
-- Tool descriptions are the PRIMARY selection mechanism, not supplementary metadata.
-- A production description states: what it does, inputs (types/formats/constraints), example queries, edge cases/limits, and when to use THIS tool vs. similar ones.
-- Misrouting fix ranking: expand descriptions (correct) > few-shot / routing classifier / consolidation (wrong as a first step).
-- Split generic tools (`analyze_document`) into narrow ones (`extract_data_points`, `summarize_content`, `verify_claim_against_source`).
-- Keyword-sensitive system-prompt instructions can silently override good descriptions - reread the system prompt after fixing them.
-
-## Exam trap
-
-Reaching for few-shot examples, a routing classifier, or consolidation before expanding descriptions. Descriptions are not the fix when the toolkit itself is too large (past ~4-5 tools per agent) - see 2.3.
-
-## Code walkthrough
-
-_To be built:_ `good_example.py`, `anti_pattern.py`, `test_task_2_1.py`.
+This folder will follow the repo template: a README with theory, exam traps and a code walkthrough; `good_example.py` implementing the lesson's Build Exercise; `anti_pattern.py` with one runnable function per Exam Trap; and a mock-mode test file.

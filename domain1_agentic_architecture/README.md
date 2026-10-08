@@ -1,38 +1,31 @@
 # Domain 1 — Agentic Architecture & Orchestration (27%)
 
-This is the most heavily weighted domain on the exam blueprint. It covers Task Statements 1.1–1.7.
+Source: <https://claudecertificationguide.com/learn/1-agentic-architecture>
 
-| Task | One-line summary |
-|---|---|
-| [1.1 Agentic Loop](task_1_1_agentic_loop/) | `stop_reason` is authoritative; nothing else decides the loop |
-| [1.2 Hub-and-Spoke](task_1_2_hub_and_spoke/) | Breadth-first decomposition + strict subagent isolation, all through one hub |
-| [1.3 Context Passing](task_1_3_context_passing/) | Never let structured metadata become plain text before it reaches synthesis |
-| [1.4 Prerequisite Gates](task_1_4_prerequisite_gates/) | Code enforces what prompts can only request |
-| [1.5 SDK Hooks](task_1_5_sdk_hooks/) | Same rule as 1.4, formalised as hooks; block in Pre, normalise in Post |
-| [1.6 Task Decomposition](task_1_6_task_decomposition/) | Match the pattern to whether the plan is knowable up front; fix dilution with multi-pass, not a bigger model |
-| [1.7 Session State](task_1_7_session_state/) | Stale history beats good intentions; start fresh and inject only what's still true |
+Each task follows the same layout:
 
-## Cross-cutting exam traps
+- `good_example.py` implements the lesson's **Build Exercise** step by step.
+- `anti_pattern.py` has one runnable function per **Exam Trap**.
+- The tests check every step, every trap, and the practice scenario's answer.
 
-| Trap | Why it's wrong | Task |
+| Task | Build exercise | Traps |
 |---|---|---|
-| `response.content[0].type == "text"` as the exit check | A `tool_use` block can follow text in the same response | 1.1 |
-| Iteration cap as the primary stop condition | Cuts off real work or wastes cost; safety net only | 1.1 |
-| `tool_choice: "any"` for the whole loop | `end_turn` becomes unreachable | 1.1 |
-| Rigid "exactly N subtopics" prompt | Forces merging or dropping categories | 1.2 |
-| Stripping metadata before synthesis (`.map(f => f.claim)`) | The single root cause of unattributed claims | 1.3 |
-| Prompt-only enforcement for financial/compliance actions | ~92% reliable isn't 100% | 1.4 / 1.5 |
-| PostToolUse used to block an action | The handler already ran | 1.5 |
-| Fixed pipeline for open-ended investigation | Can't adapt to unexpected findings | 1.6 |
-| Batching without an integration pass | Solves only within-batch dilution | 1.6 |
-| Bigger model / larger context as the dilution fix | Dilution is architectural | 1.6 |
-| `--resume` after files changed | Stale tool results remain in history | 1.7 |
-| `fork_session` to fix stale context | The fork copies the same stale history | 1.7 |
-| Full re-exploration when only a few files changed | Targeted re-analysis is the right move | 1.7 |
+| [1.1 Agentic Loops](task_1_1_agentic_loop/) | Multi-tool agent loop (calculator + web search, `MAX_ITERATIONS = 20`) | 4 |
+| [1.2 Multi-Agent Orchestration](task_1_2_orchestration/) | Hub-and-spoke research coordinator ("renewable energy technologies", 6 energy types) | 5 |
+| [1.3 Subagent Invocation and Context Passing](task_1_3_subagent_context/) | `Agent` tool in `allowed_tools`, scoped subagents, structured findings, parallel spawns | 4 |
+| [1.4 Workflow Enforcement and Handoff](task_1_4_workflow_enforcement/) | Prerequisite gate on `process_refund`, structured handoff, multi-concern request | 4 |
+| [1.5 Agent SDK Hooks](task_1_5_sdk_hooks/) | Real MCP server; PostToolUse normalisation; PreToolUse refund, AML and discount policies | 4 |
+| [1.6 Task Decomposition Strategies](task_1_6_task_decomposition/) | Multi-pass code review over a 12-file JS repo, plus an adaptive test plan | 5 |
+| [1.7 Session State and Resumption](task_1_7_session_resumption/) | Named sessions on a 10-file codebase; resume vs fork vs fresh start | 4 |
 
 ## Shared building block
 
-The Task 1.1 `run_agent()` loop is reused by Tasks 1.4, 1.5 and 1.7. Each passes its own `tools`, an `execute` dispatcher (where gates and hooks live) and, for 1.7, prior `history`.
+Task 1.1's `run_agent()` loop is reused by Tasks 1.3 (each subagent), 1.4, 1.5 and 1.7. Each passes in:
+
+- its own `tools`
+- an `execute` dispatcher (where gates and hooks live)
+- a `system` prompt
+- optionally, prior `history`
 
 ```bash
 .venv/bin/pytest domain1_agentic_architecture

@@ -1,57 +1,92 @@
-"""Task 1.1 — the correct agentic loop: stop_reason decides, nothing else.
+"""Task 1.1 — Build a Multi-Tool Agent Loop (lesson Build Exercise, steps 1-6).
 
-    (a) send full history  (b) inspect stop_reason
-    (c) "tool_use"  -> run tools, append assistant turn + tool_result turn, send again
-    (d) "end_turn"  -> done
+Lesson: https://claudecertificationguide.com/learn/1-agentic-architecture/1-1-agentic-loops
 
-tool_choice is left unset (defaults to "auto") so end_turn stays reachable.
-The iteration cap is a safety net that raises; it is never the normal exit.
-
-Other modules reuse run_agent() with their own tools/executor.
+The loop is deterministic control flow in code; stop_reason is the only signal that
+decides whether it continues. Other tasks reuse run_agent() with their own tools.
 """
 
 from __future__ import annotations
 
+import ast
 import json
+import logging
+import operator
 from dataclasses import dataclass, field
 from typing import Callable
 
 from common import config
 from common.client import get_client, mode_banner, response_text
-from common.mock import last_tool_results, message, text, tool_use
+from common.mock import last_tool_results, last_user_text, message, text, tool_use
 
-ORDERS = {
-    "A-100": {"status": "shipped", "carrier": "UPS", "eta": "2026-10-10"},
-    "B-200": {"status": "processing", "eta": "2026-10-14"},
-}
+log = logging.getLogger(__name__)
+
+# ---- Step 1: two tools, each with a name, description and JSON Schema input_schema ----------
 
 TOOLS = [
     {
-        "name": "get_order_status",
-        "description": (
-            "Look up the current fulfilment status of ONE order by its order ID (e.g. 'A-100'). "
-            "Returns status, carrier and ETA. Call once per order; calls for different orders can run in parallel."
-        ),
+        "name": "calculator",
+        "description": "Evaluate an arithmetic expression (+ - * / ** and parentheses). "
+                       "Use for any numeric calculation; returns the numeric result.",
         "input_schema": {
             "type": "object",
-            "properties": {"order_id": {"type": "string", "description": "Order ID such as 'A-100'"}},
-            "required": ["order_id"],
+            "properties": {"expression": {"type": "string", "description": "e.g. '330 * 3.28084'"}},
+            "required": ["expression"],
         },
-    }
+    },
+    {
+        "name": "web_search",
+        "description": "Search the web for facts. Returns a short list of result snippets with URLs. "
+                       "Use it to look up a value before calculating with it.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"],
+        },
+    },
 ]
+
+SEARCH_INDEX = {  # the web search is a stub, as the exercise specifies
+    "eiffel tower height": [{"url": "https://example.org/eiffel", "snippet": "The Eiffel Tower is 330 metres tall."}],
+    "great wall length": [{"url": "https://example.org/wall", "snippet": "The Great Wall is about 21196 km long."}],
+}
+
+_OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
+        ast.Pow: operator.pow, ast.USub: operator.neg}
+
+
+def calculate(expression: str) -> float:
+    """Safe arithmetic evaluator - never eval() model-supplied strings."""
+    def ev(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return node.value
+        if isinstance(node, ast.BinOp) and type(node.op) in _OPS:
+            return _OPS[type(node.op)](ev(node.left), ev(node.right))
+        if isinstance(node, ast.UnaryOp) and type(node.op) in _OPS:
+            return _OPS[type(node.op)](ev(node.operand))
+        raise ValueError(f"unsupported expression: {expression}")
+    return ev(ast.parse(expression, mode="eval").body)
 
 
 def execute_tool(name: str, tool_input: dict) -> dict:
-    if name == "get_order_status":
-        order = ORDERS.get(tool_input["order_id"])
-        if order is None:
-            return {"is_error": True, "error": f"order {tool_input['order_id']} not found"}
-        return {"order_id": tool_input["order_id"], **order}
+    try:
+        if name == "calculator":
+            return {"result": round(calculate(tool_input["expression"]), 4)}
+        if name == "web_search":
+            q = tool_input["query"].lower()
+            hits = [r for key, results in SEARCH_INDEX.items() if key in q for r in results]
+            return {"results": hits}
+    except (ValueError, SyntaxError, ZeroDivisionError) as e:
+        return {"is_error": True, "error": str(e)}
     return {"is_error": True, "error": f"unknown tool {name}"}
 
 
-class IterationCapReached(RuntimeError):
-    """Safety net tripped. In a healthy loop this never happens."""
+# ---- Steps 2-4 and 6: the loop --------------------------------------------------------------
+
+MAX_ITERATIONS = 20  # Step 6: a safety bound, never the stop mechanism
+
+# Current docs: values beyond the exam's tool_use / end_turn. All mean "not finished - find out why".
+INCOMPLETE_STOP_REASONS = {"max_tokens", "stop_sequence", "refusal", "model_context_window_exceeded"}
 
 
 @dataclass
@@ -61,6 +96,8 @@ class AgentResult:
     iterations: int
     messages: list
     tool_calls: list = field(default_factory=list)  # (tool_use_id, name, input)
+    complete: bool = False
+    hit_safety_cap: bool = False
 
 
 def run_agent(
@@ -69,10 +106,10 @@ def run_agent(
     tools: list = TOOLS,
     execute: Callable[[str, dict], dict] = execute_tool,
     system: str | None = None,
-    max_iterations: int = 10,
     history: list | None = None,
+    max_iterations: int = MAX_ITERATIONS,
 ) -> AgentResult:
-    # history = prior turns to resend (the API is stateless: full history every request)
+    # The API is stateless: every request carries the full history.
     messages: list = list(history or []) + [{"role": "user", "content": user_message}]
     tool_calls: list = []
 
@@ -80,73 +117,78 @@ def run_agent(
         request = dict(model=config.model(), max_tokens=config.MAX_TOKENS, tools=tools, messages=messages)
         if system:
             request["system"] = system
-        # NOTE: no tool_choice -> "auto". Forcing "any" would make end_turn unreachable.
-        response = client.messages.create(**request)
-
-        # Entry 1 of 2: Claude's own turn (text AND tool_use blocks), role "assistant".
+        response = client.messages.create(**request)  # Step 2. No tool_choice -> "auto".
         messages.append({"role": "assistant", "content": response.content})
 
-        if response.stop_reason == "end_turn":
-            return AgentResult(response_text(response), "end_turn", iteration, messages, tool_calls)
+        if response.stop_reason == "end_turn":  # Step 4
+            return AgentResult(response_text(response), "end_turn", iteration, messages, tool_calls, complete=True)
 
-        if response.stop_reason == "tool_use":
+        if response.stop_reason == "tool_use":  # Step 3
             results = []
-            # Look at EVERY block, not content[0] - text can precede the tool_use blocks.
-            for block in response.content:
+            for block in response.content:  # every block - text may precede the tool_use blocks
                 if block.type != "tool_use":
                     continue
                 tool_calls.append((block.id, block.name, block.input))
                 output = execute(block.name, block.input)
-                results.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": block.id,  # correlates each result with its request
-                        "content": json.dumps(output),
-                        "is_error": bool(output.get("is_error")),
-                    }
-                )
-            # Entry 2 of 2: ONE new user message holding every tool_result.
-            messages.append({"role": "user", "content": results})
+                results.append({"type": "tool_result", "tool_use_id": block.id,
+                                "content": json.dumps(output), "is_error": bool(output.get("is_error"))})
+            messages.append({"role": "user", "content": results})  # one user message, all results
             continue
 
-        # max_tokens, refusal, pause_turn ...: surface it rather than guessing.
+        if response.stop_reason == "pause_turn":  # server tool paused a long turn: resend to continue
+            continue
+
+        # max_tokens / stop_sequence / refusal / model_context_window_exceeded: surface, don't guess
         return AgentResult(response_text(response), response.stop_reason, iteration, messages, tool_calls)
 
-    raise IterationCapReached(f"no end_turn after {max_iterations} iterations")
+    log.warning("agent hit MAX_ITERATIONS=%d without end_turn - investigate a runaway loop", max_iterations)
+    return AgentResult("", "safety_cap", max_iterations, messages, tool_calls, hit_safety_cap=True)
 
 
-# ---- mock model ------------------------------------------------------------------------
+# ---- Step 5: a prompt where one tool's output feeds the next --------------------------------
+
+QUESTION = "How tall is the Eiffel Tower in feet? Look up its height first, then convert it."
+
+PRACTICE = {
+    "question": "An agent ends early when Claude returns text alongside a tool call; the loop checks "
+                "response.content[0].type == 'text'. What should change?",
+    "options": {
+        "A": "Add an iteration cap of 15 loops",
+        "B": "Check stop_reason: continue on tool_use, terminate on end_turn",
+        "C": "Set tool_choice to any",
+        "D": "Parse the assistant text for completion phrases",
+    },
+    "answer": "B",
+    "why": "Only stop_reason reliably says whether Claude is finished; A is a safety net, C makes "
+           "end_turn unreachable, D is ambiguous natural-language parsing.",
+}
+
+
+# ---- mock model -----------------------------------------------------------------------------
 
 def mock_model(kwargs: dict):
-    """Behaves like Claude on this task.
-
-    Turn 1: text AND two parallel tool_use blocks in the SAME response (the case
-    that breaks a content[0].type == "text" check). After tool results: end_turn.
-    If forced with tool_choice "any" it must call a tool every time, so it never finishes.
-    """
-    if (kwargs.get("tool_choice") or {}).get("type") == "any":
-        return message(tool_use("get_order_status", {"order_id": "A-100"}))
+    """Behaves like Claude here: text + tool_use in one response, then a dependent second call."""
+    if (kwargs.get("tool_choice") or {}).get("type") == "any":  # forced: must call a tool every turn
+        return message(tool_use("web_search", {"query": "Eiffel Tower height"}))
     results = last_tool_results(kwargs)
     if not results:
-        return message(
-            text("Let me check both orders."),
-            tool_use("get_order_status", {"order_id": "A-100"}),
-            tool_use("get_order_status", {"order_id": "B-200"}),
-        )
-    statuses = [json.loads(r["content"]) for r in results]
-    summary = "; ".join(f"{s['order_id']} is {s['status']} (ETA {s['eta']})" for s in statuses)
-    return message(text(f"Here's where things stand: {summary}."))
-
-
-QUESTION = "Where are my orders A-100 and B-200?"
+        if last_user_text(kwargs) == "Continue.":
+            return message(text("The Eiffel Tower is about 1082.68 feet tall."))
+        return message(text("Let me look that up."), tool_use("web_search", {"query": "Eiffel Tower height"}))
+    last = json.loads(results[-1]["content"])
+    if "results" in last:
+        metres = last["results"][0]["snippet"].split(" is ")[1].split(" ")[0]
+        return message(tool_use("calculator", {"expression": f"{metres} * 3.28084"}))
+    return message(text(f"The Eiffel Tower is about {last['result']:.2f} feet tall (330 m)."))
 
 
 def main():
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
     print(mode_banner())
     result = run_agent(get_client(mock_model), QUESTION)
-    print(f"stop_reason={result.stop_reason} iterations={result.iterations}")
+    print(f"stop_reason={result.stop_reason} iterations={result.iterations} complete={result.complete}")
     for tool_use_id, name, tool_input in result.tool_calls:
-        print(f"  ran {name}({tool_input}) id={tool_use_id}")
+        print(f"  {name}({tool_input})  id={tool_use_id}")
     print(f"answer: {result.final_text}")
 
 

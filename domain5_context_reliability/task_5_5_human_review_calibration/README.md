@@ -1,18 +1,5 @@
 # Task 5.5 — Human Review & Confidence Calibration
 
-> Status: **skeleton** — theory captured from the study notes; demo not built yet.
+> Status: **not built yet.** Lesson: <https://claudecertificationguide.com/learn/5-context-management/5-5-human-review-calibration>
 
-## Theory
-
-- 97% aggregate accuracy can hide 45-60% on specific document types - validate per type AND field.
-- Stratified sampling must include high-confidence automated items.
-- Calibrate confidence per field per document type against labelled sets.
-- Prioritise reviewer capacity dynamically by uncertainty, not evenly or chronologically.
-
-## Exam trap
-
-Automating on aggregate metrics; sampling only low-confidence items; raw confidence without calibration.
-
-## Code walkthrough
-
-_To be built:_ `good_example.py`, `anti_pattern.py`, `test_task_5_5.py`.
+This folder will follow the repo template: a README with theory, exam traps and a code walkthrough; `good_example.py` implementing the lesson's Build Exercise; `anti_pattern.py` with one runnable function per Exam Trap; and a mock-mode test file.

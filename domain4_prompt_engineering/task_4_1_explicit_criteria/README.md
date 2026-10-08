@@ -1,18 +1,5 @@
 # Task 4.1 — System Prompts with Explicit Criteria
 
-> Status: **skeleton** — theory captured from the study notes; demo not built yet.
+> Status: **not built yet.** Lesson: <https://claudecertificationguide.com/learn/4-prompt-engineering/4-1-system-prompts>
 
-## Theory
-
-- "Be conservative" / "high-confidence only" give no decision boundary - define report-X / skip-Y categories with concrete triggers.
-- One noisy category destroys trust in all categories: temporarily disable it while you fix its prompt.
-- Calibrate severity with code examples per level, not prose definitions.
-- Self-reported confidence is poorly calibrated: use it for routing (4.6), never in place of criteria.
-
-## Exam trap
-
-Vague confidence-based instructions as the fix; keeping a high false-positive category running while reworking it.
-
-## Code walkthrough
-
-_To be built:_ `good_example.py`, `anti_pattern.py`, `test_task_4_1.py`.
+This folder will follow the repo template: a README with theory, exam traps and a code walkthrough; `good_example.py` implementing the lesson's Build Exercise; `anti_pattern.py` with one runnable function per Exam Trap; and a mock-mode test file.

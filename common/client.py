@@ -28,6 +28,11 @@ def response_text(response) -> str:
     return "".join(b.text for b in response.content if b.type == "text")
 
 
+def parse_json_object(text_out: str) -> Any:
+    """For free-text replies that were asked for JSON: tolerate prose around the object in live runs."""
+    return json.loads(text_out[text_out.index("{"): text_out.rindex("}") + 1])
+
+
 def ask_json(client, prompt: str, schema: dict, system: str | None = None) -> Any:
     """One structured-output call: output_config.format guarantees parseable JSON text."""
     kwargs: dict = dict(

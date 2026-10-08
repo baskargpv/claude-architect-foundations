@@ -1,18 +1,5 @@
 # Task 5.4 — Codebase Exploration & Context Degradation
 
-> Status: **skeleton** — theory captured from the study notes; demo not built yet.
+> Status: **not built yet.** Lesson: <https://claudecertificationguide.com/learn/5-context-management/5-4-codebase-exploration>
 
-## Theory
-
-- Degradation is depth-over-time (not breadth-in-one-pass like 1.6 dilution) and not a token-limit problem.
-- Scratchpad files keep findings outside the context; subagent delegation keeps verbose output out entirely.
-- Inject a phase-1 summary into phase-2 subagents; use `/compact` proactively.
-- Crash recovery via a structured state manifest each agent exports.
-
-## Exam trap
-
-A bigger context window as the fix; delegation viewed only as parallelisation; restarting without saving state.
-
-## Code walkthrough
-
-_To be built:_ `good_example.py`, `anti_pattern.py`, `test_task_5_4.py`.
+This folder will follow the repo template: a README with theory, exam traps and a code walkthrough; `good_example.py` implementing the lesson's Build Exercise; `anti_pattern.py` with one runnable function per Exam Trap; and a mock-mode test file.
