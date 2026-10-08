@@ -15,7 +15,7 @@ config files (`CLAUDE.md`, `.claude/`, YAML, shell).
 
 ## Domain map
 
-Status: ✅ built and tested · 🧱 not built yet
+Status: ✅ built and tested (all 30 tasks)
 
 ### Domain 1 — Agentic Architecture & Orchestration (27%) ✅
 
@@ -61,16 +61,16 @@ Status: ✅ built and tested · 🧱 not built yet
 | 4.5 | [Batch Processing Strategies](domain4_prompt_engineering/task_4_5_batch_processing/) | `custom_id` batches, failure resubmission, SLA cadence |
 | 4.6 | [Multi-Instance & Multi-Pass Review](domain4_prompt_engineering/task_4_6_multi_pass_review/) | Per-file + integration review, calibrated routing |
 
-### Domain 5 — Context Management & Reliability (15%) 🧱
+### Domain 5 — Context Management & Reliability (15%) ✅
 
-| Task | Folder |
-|---|---|
-| 5.1 | [Context Window Management](domain5_context_reliability/task_5_1_context_window/) |
-| 5.2 | [Escalation & Ambiguity Resolution](domain5_context_reliability/task_5_2_escalation/) |
-| 5.3 | [Error Propagation in Multi-Agent Systems](domain5_context_reliability/task_5_3_error_propagation/) |
-| 5.4 | [Codebase Exploration & Context Degradation](domain5_context_reliability/task_5_4_context_degradation/) |
-| 5.5 | [Human Review & Confidence Calibration](domain5_context_reliability/task_5_5_human_review_calibration/) |
-| 5.6 | [Information Provenance & Multi-Source Synthesis](domain5_context_reliability/task_5_6_provenance/) |
+| Task | Folder | Build exercise |
+|---|---|---|
+| 5.1 | [Context Window Management](domain5_context_reliability/task_5_1_context_window/) | Persistent case-facts block, result trimming, key findings first |
+| 5.2 | [Escalation & Ambiguity Resolution](domain5_context_reliability/task_5_2_escalation/) | Escalation criteria + few-shot, never-guess customer matching |
+| 5.3 | [Error Propagation in Multi-Agent Systems](domain5_context_reliability/task_5_3_error_propagation/) | Structured errors, local recovery, coverage annotations |
+| 5.4 | [Codebase Exploration & Context Degradation](domain5_context_reliability/task_5_4_context_degradation/) | Scratchpad, subagent delegation, state manifest |
+| 5.5 | [Human Review & Confidence Calibration](domain5_context_reliability/task_5_5_human_review_calibration/) | Per-segment accuracy, calibration, stratified sampling |
+| 5.6 | [Information Provenance & Multi-Source Synthesis](domain5_context_reliability/task_5_6_provenance/) | Claim-source mappings, conflict annotation, content-aware rendering |
 
 ## Setup
 
