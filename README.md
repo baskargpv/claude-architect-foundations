@@ -39,16 +39,16 @@ Status: ✅ built and tested · 🧱 not built yet
 | 2.4 | [MCP Server Integration](domain2_tool_design_mcp/task_2_4_mcp_integration/) | `.mcp.json` scopes, `${VAR}` secrets, MCP resources |
 | 2.5 | [Built-in Tools](domain2_tool_design_mcp/task_2_5_builtin_tools/) | Grep → Glob → Read → Edit deprecation workflow |
 
-### Domain 3 — Claude Code Configuration & Workflows (20%) 🧱
+### Domain 3 — Claude Code Configuration & Workflows (20%) ✅
 
-| Task | Folder |
-|---|---|
-| 3.1 | [CLAUDE.md Hierarchy, Scoping & Modular Organisation](domain3_claude_code_config/task_3_1_claude_md_hierarchy/) |
-| 3.2 | [Custom Slash Commands & Skills](domain3_claude_code_config/task_3_2_commands_and_skills/) |
-| 3.3 | [Path-Specific Rules](domain3_claude_code_config/task_3_3_path_rules/) |
-| 3.4 | [Plan Mode vs Direct Execution](domain3_claude_code_config/task_3_4_plan_mode/) |
-| 3.5 | [Iterative Refinement Techniques](domain3_claude_code_config/task_3_5_iterative_refinement/) |
-| 3.6 | [CI/CD Integration](domain3_claude_code_config/task_3_6_ci_cd/) |
+| Task | Folder | Build exercise |
+|---|---|---|
+| 3.1 | [CLAUDE.md Hierarchy, Scoping & Modular Organisation](domain3_claude_code_config/task_3_1_claude_md_hierarchy/) | What loads where: user/project/directory files, `@` imports, rules |
+| 3.2 | [Custom Slash Commands & Skills](domain3_claude_code_config/task_3_2_commands_and_skills/) | Team command vs personal forked skill |
+| 3.3 | [Path-Specific Rules](domain3_claude_code_config/task_3_3_path_rules/) | `paths:` glob rules and their token footprint |
+| 3.4 | [Plan Mode vs Direct Execution](domain3_claude_code_config/task_3_4_plan_mode/) | Ambiguity-based mode choice, plan-then-execute |
+| 3.5 | [Iterative Refinement Techniques](domain3_claude_code_config/task_3_5_iterative_refinement/) | Examples, test-driven iteration, interview pattern |
+| 3.6 | [CI/CD Integration](domain3_claude_code_config/task_3_6_ci_cd/) | `claude -p` with JSON schema, independent incremental review |
 
 ### Domain 4 — Prompt Engineering & Structured Output (20%) 🧱
 
