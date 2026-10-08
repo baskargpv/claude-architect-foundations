@@ -29,15 +29,15 @@ Status: ✅ built and tested · 🧱 not built yet
 | 1.6 | [Task Decomposition Strategies](domain1_agentic_architecture/task_1_6_task_decomposition/) | Multi-pass code review pipeline |
 | 1.7 | [Session State & Resumption](domain1_agentic_architecture/task_1_7_session_resumption/) | Resume vs fork vs fresh start with summary |
 
-### Domain 2 — Tool Design & MCP Integration (18%) 🧱
+### Domain 2 — Tool Design & MCP Integration (18%) ✅
 
-| Task | Folder |
-|---|---|
-| 2.1 | [Tool Interface Design](domain2_tool_design_mcp/task_2_1_tool_interface_design/) |
-| 2.2 | [Structured Error Responses](domain2_tool_design_mcp/task_2_2_structured_errors/) |
-| 2.3 | [Tool Distribution & Tool Choice](domain2_tool_design_mcp/task_2_3_tool_distribution/) |
-| 2.4 | [MCP Server Integration](domain2_tool_design_mcp/task_2_4_mcp_integration/) |
-| 2.5 | [Built-in Tools](domain2_tool_design_mcp/task_2_5_builtin_tools/) |
+| Task | Folder | Build exercise |
+|---|---|---|
+| 2.1 | [Tool Interface Design](domain2_tool_design_mcp/task_2_1_tool_interface_design/) | Routing accuracy before/after rewriting MCP tool descriptions |
+| 2.2 | [Structured Error Responses](domain2_tool_design_mcp/task_2_2_structured_errors/) | Four error categories + valid empty result, category-driven recovery |
+| 2.3 | [Tool Distribution & Tool Choice](domain2_tool_design_mcp/task_2_3_tool_distribution/) | Role-scoped toolsets, scoped `verify_fact`, forced first tool, `load_document` |
+| 2.4 | [MCP Server Integration](domain2_tool_design_mcp/task_2_4_mcp_integration/) | `.mcp.json` scopes, `${VAR}` secrets, MCP resources |
+| 2.5 | [Built-in Tools](domain2_tool_design_mcp/task_2_5_builtin_tools/) | Grep → Glob → Read → Edit deprecation workflow |
 
 ### Domain 3 — Claude Code Configuration & Workflows (20%) 🧱
 
