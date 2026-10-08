@@ -50,16 +50,16 @@ Status: ✅ built and tested · 🧱 not built yet
 | 3.5 | [Iterative Refinement Techniques](domain3_claude_code_config/task_3_5_iterative_refinement/) | Examples, test-driven iteration, interview pattern |
 | 3.6 | [CI/CD Integration](domain3_claude_code_config/task_3_6_ci_cd/) | `claude -p` with JSON schema, independent incremental review |
 
-### Domain 4 — Prompt Engineering & Structured Output (20%) 🧱
+### Domain 4 — Prompt Engineering & Structured Output (20%) ✅
 
-| Task | Folder |
-|---|---|
-| 4.1 | [System Prompts with Explicit Criteria](domain4_prompt_engineering/task_4_1_explicit_criteria/) |
-| 4.2 | [Few-Shot Prompting](domain4_prompt_engineering/task_4_2_few_shot/) |
-| 4.3 | [Structured Output with Tool Use](domain4_prompt_engineering/task_4_3_structured_output/) |
-| 4.4 | [Validation, Retry & Feedback Loops](domain4_prompt_engineering/task_4_4_validation_retry/) |
-| 4.5 | [Batch Processing Strategies](domain4_prompt_engineering/task_4_5_batch_processing/) |
-| 4.6 | [Multi-Instance & Multi-Pass Review](domain4_prompt_engineering/task_4_6_multi_pass_review/) |
+| Task | Folder | Build exercise |
+|---|---|---|
+| 4.1 | [System Prompts with Explicit Criteria](domain4_prompt_engineering/task_4_1_explicit_criteria/) | Explicit report/skip criteria, severity examples, noisy-category disable |
+| 4.2 | [Few-Shot Prompting](domain4_prompt_engineering/task_4_2_few_shot/) | Examples with reasoning for narrative extraction |
+| 4.3 | [Structured Output with Tool Use](domain4_prompt_engineering/task_4_3_structured_output/) | Nullable schema, `tool_choice` modes |
+| 4.4 | [Validation, Retry & Feedback Loops](domain4_prompt_engineering/task_4_4_validation_retry/) | Pydantic validation + error-feedback retries |
+| 4.5 | [Batch Processing Strategies](domain4_prompt_engineering/task_4_5_batch_processing/) | `custom_id` batches, failure resubmission, SLA cadence |
+| 4.6 | [Multi-Instance & Multi-Pass Review](domain4_prompt_engineering/task_4_6_multi_pass_review/) | Per-file + integration review, calibrated routing |
 
 ### Domain 5 — Context Management & Reliability (15%) 🧱
 
